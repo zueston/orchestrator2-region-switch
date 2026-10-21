@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>原型：多场景 TAB —— 三角色主备模型切换</title>
+		<style>
+			:root {
+				color-scheme: light dark;
+				--bg: #f3f4f6;
+				--panel: #ffffff;
+				--panel-2: #f9fafb;
+				--text: #111827;
+				--muted: #6b7280;
+				--line: rgba(17, 24, 39, 0.14);
+				--line-strong: rgba(17, 24, 39, 0.3);
+				--brand: #2563eb;
+				--brand-soft: rgba(37, 99, 235, 0.12);
+				--danger: #dc2626;
+				--ok: #16a34a;
+				--radius: 10px;
+			}
+			@media (prefers-color-scheme: dark) {
+				:root {
+					--bg: #17181b;
+					--panel: #212327;
+					--panel-2: #1b1d20;
+					--text: #e8eaed;
+					--muted: #9aa0a6;
+					--line: rgba(232, 234, 237, 0.16);
+					--line-strong: rgba(232, 234, 237, 0.34);
+					--brand: #6ea8fe;
+					--brand-soft: rgba(110, 168, 254, 0.16);
+					--danger: #f87171;
+					--ok: #4ade80;
+				}
+			}
+			* { box-sizing: border-box; }
+			body {
+				margin: 0;
+				padding: 28px 20px 60px;
+				background: var(--bg);
+				color: var(--text);
+				font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+			}
+			.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 18px; }
+			.head h1 { font-size: 17px; margin: 0 0 4px; }
+			.head p { margin: 0; color: var(--muted); font-size: 13px; }
+			.cols { display: grid; grid-template-columns: minmax(0, 1fr) 268px; gap: 18px; align-items: start; }
+			@media (max-width: 980px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+
+			/* ---------- 对话框 ---------- */
+			.dialog {
+				background: var(--panel);
+				border: 1px solid var(--line);
+				border-radius: 14px;
+				box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16);
+				overflow: hidden;
+			}
+			.dialog-head {
+				display: flex;
+				align-items: flex-start;
+				gap: 10px;
+				padding: 16px 18px 10px;
+			}
+			.dialog-head h2 { font-size: 15px; margin: 0; flex: 1 1 auto; }
+			.close-btn {
+				flex: 0 0 auto; width: 28px; height: 28px; line-height: 1;
+				border: 1px solid var(--line-strong); background: var(--panel-2);
+				color: inherit; border-radius: 8px; font-size: 17px; cursor: pointer;
+			}
+			.close-btn:hover { border-color: var(--brand); color: var(--brand); }
+			.dialog-sub { padding: 0 18px 12px; color: var(--muted); font-size: 12.5px; margin: 0; }
+
+			/* ---------- TAB 条 ---------- */
+			.tabbar {
+				display: flex; align-items: stretch; gap: 6px; flex-wrap: wrap;
+				padding: 0 18px; border-bottom: 1px solid var(--line);
+			}
+			.tab {
+				display: inline-flex; align-items: center; gap: 6px;
+				padding: 8px 6px 8px 12px; margin-bottom: -1px;
+				border: 1px solid transparent; border-bottom: 2px solid transparent;
+				background: transparent; color: var(--muted); font-size: 13.5px; cursor: pointer;
+				border-radius: 8px 8px 0 0;
+			}
+			.tab:hover { background: var(--panel-2); color: var(--text); }
+			.tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--brand); font-weight: 600; }
+			.tab .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
+			.tab[data-enabled="true"] .dot { background: var(--ok); }
+			.tab-name-input {
+				border: 1px dashed transparent; background: transparent; color: inherit;
+				font: inherit; font-weight: inherit; width: 7.2em; padding: 1px 3px; border-radius: 5px;
+			}
+			.tab-name-input:hover { border-color: var(--line-strong); }
+			.tab-name-input:focus { border-color: var(--brand); border-style: solid; outline: none; background: var(--panel-2); }
+			.tab-add {
+				padding: 8px 10px; margin: 4px 0 8px; border: 1px dashed var(--line-strong);
+				background: transparent; color: var(--muted); border-radius: 8px; font-size: 13px; cursor: pointer;
+			}
+			.tab-add:hover { color: var(--brand); border-color: var(--brand); }
+
+			/* ---------- 场景正文 ---------- */
+			.scene { padding: 14px 18px 4px; display: grid; gap: 14px; }
+			.card { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; background: var(--panel-2); }
+			.card-title { font-size: 13px; font-weight: 600; margin: 0 0 10px; }
+			.row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+			.field { display: grid; gap: 4px; }
+			.field > span { font-size: 12px; color: var(--muted); }
+			input[type="text"], select {
+				font: inherit; color: inherit; background: var(--panel);
+				border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 8px; min-width: 0;
+			}
+			input[type="text"]:focus, select:focus { outline: 2px solid var(--brand-soft); border-color: var(--brand); }
+			.toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; user-select: none; }
+			.toggle input { width: 16px; height: 16px; accent-color: var(--ok); cursor: pointer; }
+			.toggle .hint { color: var(--muted); font-size: 12px; }
+
+			.roles { display: grid; gap: 12px; }
+			.role { display: grid; grid-template-columns: 74px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+			.role + .role { border-top: 1px dashed var(--line); padding-top: 12px; }
+			.role-name { font-size: 13px; font-weight: 600; padding-top: 22px; }
+			.side { display: grid; gap: 6px; }
+			.side-head { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+			.side-head b { color: var(--text); font-size: 12.5px; }
+			.side-head .pill {
+				font-size: 11px; padding: 1px 7px; border-radius: 999px;
+				border: 1px solid var(--brand); color: var(--brand); background: var(--brand-soft);
+			}
+			.side-head .pill.off { border-color: var(--line-strong); color: var(--muted); background: transparent; }
+			.side select { width: 100%; }
+
+			/* ---------- 弹窗底部 ---------- */
+			.dialog-foot {
+				display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+				padding: 14px 18px; border-top: 1px solid var(--line); margin-top: 12px;
+			}
+			.dialog-foot .path { flex: 1 1 auto; color: var(--muted); font-size: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+			button.btn {
+				font: inherit; font-size: 13.5px; padding: 8px 16px; border-radius: 8px; cursor: pointer;
+				border: 1px solid var(--line-strong); background: var(--panel); color: inherit;
+			}
+			button.btn:hover { border-color: var(--brand); color: var(--brand); }
+			button.btn.primary { background: var(--text); color: var(--panel); border-color: var(--text); font-weight: 600; }
+			button.btn.primary:hover { opacity: 0.88; color: var(--panel); }
+			button.btn.danger { border-color: var(--danger); color: var(--danger); }
+			button.btn.danger:hover { background: var(--danger); color: #fff; }
+			button.btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+			/* ---------- 侧边栏预览 ---------- */
+			.side-panel { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 12px; }
+			.side-panel h3 { margin: 0 0 4px; font-size: 13px; }
+			.side-panel .note { margin: 0 0 12px; font-size: 11.5px; color: var(--muted); }
+			.mock-side { display: grid; gap: 8px; }
+			.mock-row {
+				display: flex; align-items: center; gap: 6px; padding: 5px 6px;
+				border-radius: 10px; border: 1px solid transparent;
+			}
+			.mock-row.active { border-color: var(--brand); background: var(--brand-soft); }
+			.mock-row.dim { opacity: 0.45; }
+			.mock-label { font-size: 11.5px; color: var(--muted); flex: 0 0 auto; }
+			.mock-seg {
+				display: inline-flex; align-items: stretch; flex: 1 1 auto; min-width: 0;
+				border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; background: var(--panel-2);
+			}
+			.mock-seg button {
+				flex: 1 1 0; min-width: 0; font: inherit; font-size: 11.5px; padding: 4px 6px;
+				border: 0; background: transparent; color: var(--muted); cursor: pointer;
+				white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+			}
+			.mock-seg button.on { background: var(--text); color: var(--panel); font-weight: 600; }
+			.mock-set {
+				flex: 0 0 auto; font-size: 11px; padding: 4px 8px; border-radius: 7px; cursor: pointer;
+				border: 1px solid var(--line-strong); background: var(--panel); color: inherit;
+			}
+			.mock-set:hover { border-color: var(--brand); color: var(--brand); }
+
+			/* ---------- 说明区 ---------- */
+			.notes { display: grid; gap: 12px; }
+			.notes .card { background: var(--panel); }
+			.notes ol, .notes ul { margin: 0; padding-left: 20px; }
+			.notes li { margin: 4px 0; font-size: 13px; }
+			.notes li b { font-weight: 600; }
+			.notes code {
+				font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px;
+				background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 0 4px;
+			}
+			pre {
+				margin: 0; padding: 12px; overflow: auto; font-size: 12px; line-height: 1.55;
+				font-family: ui-monospace, Menlo, Consolas, monospace;
+				background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius);
+			}
+			.tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); }
+			.tag.warn { border-color: #f59e0b; color: #b45309; }
+			.q { font-size: 13px; margin: 0 0 10px; }
+			.q:last-child { margin-bottom: 0; }
+			.q b { display: block; margin-bottom: 2px; }
+			.q .rec { color: var(--brand); }
+			.toast {
+				position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+				background: var(--text); color: var(--panel); padding: 9px 18px; border-radius: 999px;
+				font-size: 13px; opacity: 0; pointer-events: none; transition: opacity 0.18s ease;
+			}
+			.toast.show { opacity: 1; }
+		</style>
+	</head>
+	<body>
+		<div class="wrap">
+			<div class="head">
+				<h1>原型 · 多场景 TAB：三角色主备模型切换</h1>
+				<p>
+					这是可点的静态原型（纯 HTML，不改插件、不写配置）。TAB 可增删改名、每个场景自己一套主备模型 +
+					自己的两个按钮名 + 一个「使用」开关；右侧是侧边栏会变成什么样。
+				</p>
+			</div>
+
+			<div class="cols">
+				<section class="dialog" aria-label="三角色主备模型切换">
+					<div class="dialog-head">
+						<h2>三角色主备模型切换</h2>
+						<button class="close-btn" title="关闭" aria-label="关闭">×</button>
+					</div>
+					<p class="dialog-sub">每个场景是一套独立的主 / 备模型；勾选「使用」的场景才会在侧边栏出现切换按钮。</p>
+
+					<div class="tabbar" id="tabbar"></div>
+					<div class="scene" id="scene"></div>
+
+					<div class="dialog-foot">
+						<span class="path" id="path">数据文件：C:\Users\demo\.dsh\orchestrator2\model-routes.json</span>
+						<button class="btn" id="cancel">取消</button>
+						<button class="btn primary" id="save">保存</button>
+					</div>
+				</section>
+
+				<aside class="side-panel">
+					<h3>侧边栏预览</h3>
+					<p class="note">只有勾了「使用」的场景才出现一行；点某行即切到该场景（蓝框＝当前生效）。</p>
+					<div class="mock-side" id="mockSide"></div>
+				</aside>
+			</div>
+
+			<div class="notes">
+				<div class="card">
+					<p class="card-title">交互说明<span class="tag" style="margin-left: 8px">原型可点</span></p>
+					<ol>
+						<li><b>TAB 条</b>：点「+ 新增场景」加一个；TAB 上的名字直接双击/点进去就能改；绿点＝该场景已勾「使用」。</li>
+						<li><b>每个场景</b>：两个按钮名（如「国内 / 国际」「收费国内 / 收费国外」）+ 主 / 备两列三角色模型 + 一个「使用」开关。</li>
+						<li><b>切换</b>：点侧边栏预览里的分段按钮＝把该场景的主 / 备对调（主槽换成另一侧），和现在的「国内 / 国际」行为一致，只是每个场景各管各的。</li>
+						<li><b>删除场景</b>：右上一个「删除此场景」，至少保留 1 个；删掉当前生效的场景会把生效权交给第一个启用的场景。</li>
+						<li><b>保存</b>：写 <code>scenarios</code>（全量场景）+ 由「当前生效场景」派生出的 <code>roles</code>（老字段，orchestrator2 继续读它，不需要改 1.0/2.0 预设）。</li>
+					</ol>
+				</div>
+
+				<div class="card">
+					<p class="card-title">数据形状（保存后写进 model-routes.json）</p>
+					<pre id="jsonPreview"></pre>
+				</div>
+
+				<div class="card">
+					<p class="card-title">待你确认的 3 个取舍<span class="tag warn" style="margin-left: 8px">会影响实现</span></p>
+					<p class="q">
+						<b>Q1 多个场景同时勾「使用」时，谁是真正生效的？</b>
+						场景决定的是「三个子代理派工时用的模型」，全局只有一套，所以只能有一个生效。
+						<span class="rec">推荐：最后点击的那个生效（侧边栏蓝框标出），其它已启用场景的按钮仍可点、点了就接管。</span>
+						备选：只允许勾一个（勾新的自动取消旧的）。
+					</p>
+					<p class="q">
+						<b>Q2 场景里「主 / 备」两列，是两套独立模型，还是同一套的两侧？</b>
+						<span class="rec">推荐：两套独立的模型集合，切换 = 把主槽指向另一侧（现在的实现就是这个语义，切回来还是原来那套，不会串）。</span>
+					</p>
+					<p class="q">
+						<b>Q3 场景上限与默认值？</b>
+						<span class="rec">推荐：最多 6 个场景；名字与按钮名各限 16 字，留空回落「场景 N」「国内 / 国际」；旧文件（没有 scenarios）自动迁移成一个场景一。</span>
+					</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="toast" id="toast"></div>
+
+		<script>
+			// ---------------- 演示用模型目录（与插件 /catalog 返回同形，真实实现从宿主读） ----------------
+			const CATALOG = [
+				{
+					provider: 'deepseek-official',
+					label: 'deepseek-official',
+					models: [
+						{ id: 'cn:deepseek-v4.1-flash', name: 'Deepseek-V4.1-Flash(cn)' },
+						{ id: 'cn:step-5-preview', name: 'Step-5-Preview(cn)' },
+						{ id: 'global:deepseek-v4.1-flash', name: 'Deepseek-V4.1-Flash' },
+						{ id: 'global:step-5-preview', name: 'Step-5-Preview' },
+					],
+				},
+				{
+					provider: 'deepseek-account',
+					label: 'DeepSeek 账号',
+					models: [
+						{ id: 'deepseek-flash', name: 'DeepSeek-V4.1-Flash' },
+						{ id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro' },
+					],
+				},
+				{
+					provider: 'free-provider',
+					label: 'Our Free Model',
+					models: [
+						{ id: 'z-ai/glm-5.3', name: 'EAC GLM 5.3' },
+						{ id: 'moonshotai/kimi-k3', name: 'Kimi K3' },
+						{ id: 'deepseek-ai/deepseek-v4.1-flash', name: 'DeepSeek-V4.1-Flash(free)' },
+					],
+				},
+			];
+
+			const ROLE_KEYS = ['researcher', 'reviewer', 'developer'];
+			const ROLE_LABEL = { researcher: '研究员', reviewer: '审核员', developer: '开发员' };
+			const SIDES = ['a', 'b'];
+
+			const route = (provider, model) => ({ provider, model });
+
+			// ---------------- 初始状态：用你截图里的那套数据 ----------------
+			const state = {
+				activeScenario: 'scene-1',
+				scenarios: [
+					{
+						id: 'scene-1',
+						name: '场景一',
+						enabled: true,
+						labels: { a: '国内', b: '国际' },
+						primary: 'a',
+						roles: {
+							researcher: {
+								a: route('deepseek-official', 'cn:deepseek-v4.1-flash'),
+								b: route('deepseek-official', 'global:deepseek-v4.1-flash'),
+							},
+							reviewer: {
+								a: route('deepseek-official', 'cn:step-5-preview'),
+								b: route('deepseek-official', 'global:step-5-preview'),
+							},
+							developer: {
+								a: route('deepseek-official', 'cn:deepseek-v4.1-flash'),
+								b: route('deepseek-official', 'global:deepseek-v4.1-flash'),
+							},
+						},
+					},
+					{
+						id: 'scene-2',
+						name: '场景二',
+						enabled: true,
+						labels: { a: '收费国内', b: '收费国外' },
+						primary: 'a',
+						roles: {
+							researcher: {
+								a: route('deepseek-account', 'deepseek-flash'),
+								b: route('free-provider', 'z-ai/glm-5.3'),
+							},
+							reviewer: {
+								a: route('deepseek-account', 'deepseek-v4-pro'),
+								b: route('free-provider', 'moonshotai/kimi-k3'),
+							},
+							developer: {
+								a: route('deepseek-account', 'deepseek-flash'),
+								b: route('free-provider', 'z-ai/glm-5.3'),
+							},
+						},
+					},
+				],
+			};
+
+			let seq = state.scenarios.length;
+			const activeId = () => state.activeScenario;
+			const findScenario = (id) => state.scenarios.find((s) => s.id === id);
+			const activeScenario = () => findScenario(activeId()) ?? state.scenarios[0];
+			const providerOf = (provider) => CATALOG.find((e) => e.provider === provider);
+			const modelsOf = (provider) => (providerOf(provider) ? providerOf(provider).models : []);
+			const modelNameOf = (provider, id) => (modelsOf(provider).find((m) => m.id === id) ?? { name: id }).name;
+
+			// 供下拉渲染：目录里没有的现值也要能显示（避免「值丢了」）
+			const withCurrent = (list, current, nameOf) => {
+				const key = (item) => (typeof item === 'string' ? item : item.id ?? item.provider);
+				if (current && !list.some((item) => key(item) === current)) {
+					return [{ id: current, name: nameOf ? nameOf(current) : current }, ...list];
+				}
+				return list;
+			};
+
+			const escapeHtml = (text) =>
+				String(text).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+			function toast(message) {
+				const el = document.getElementById('toast');
+				el.textContent = message;
+				el.classList.add('show');
+				clearTimeout(toast.timer);
+				toast.timer = setTimeout(() => el.classList.remove('show'), 1600);
+			}
+
+			// ---------------- 渲染：TAB 条 ----------------
+			function renderTabs() {
+				const bar = document.getElementById('tabbar');
+				bar.innerHTML = state.scenarios
+					.map(
+						(scene) => `
+					<div class="tab" role="tab" tabindex="0" data-id="${scene.id}" data-enabled="${scene.enabled}"
+						aria-selected="${scene.id === activeId()}">
+						<span class="dot"></span>
+						<input class="tab-name-input" value="${escapeHtml(scene.name)}" maxlength="16"
+							aria-label="场景名称" data-rename="${scene.id}" />
+						${scene.id === activeId() ? '<span class="tag">生效中</span>' : ''}
+					</div>`,
+					)
+					.join('') + '<button class="tab-add" id="tabAdd">+ 新增场景</button>';
+
+				bar.querySelectorAll('.tab').forEach((tab) => {
+					tab.addEventListener('click', (event) => {
+						if (event.target.closest('[data-rename]')) return; // 改名时不切 TAB
+						state.activeScenario = tab.dataset.id;
+						render();
+					});
+				});
+				bar.querySelectorAll('[data-rename]').forEach((input) => {
+					input.addEventListener('input', () => {
+						const scene = findScenario(input.dataset.rename);
+						if (!scene) return;
+						scene.name = input.value;
+						renderMock();
+						renderJson();
+					});
+					input.addEventListener('click', (event) => event.stopPropagation());
+				});
+				const addBtn = bar.querySelector('#tabAdd');
+				if (addBtn) {
+					addBtn.addEventListener('click', () => {
+						seq += 1;
+						const id = `scene-${seq}`;
+						const first = state.scenarios[0];
+						state.scenarios.push({
+							id,
+							name: `场景${'一二三四五六七八九'.charAt((seq - 1) % 9)}`,
+							enabled: false,
+							labels: { a: '国内', b: '国际' },
+							primary: 'a',
+							roles: {
+								researcher: { a: { ...first.roles.researcher.a }, b: { ...first.roles.researcher.b } },
+								reviewer: { a: { ...first.roles.reviewer.a }, b: { ...first.roles.reviewer.b } },
+								developer: { a: { ...first.roles.developer.a }, b: { ...first.roles.developer.b } },
+							},
+						});
+						state.activeScenario = id;
+						render();
+					});
+				}
+			}
+
+			// ---------------- 渲染：场景正文 ----------------
+			function providerOptions(current) {
+				const list = withCurrent(
+					CATALOG.map((entry) => ({ id: entry.provider, name: entry.label })),
+					current,
+					(id) => id,
+				);
+				return list
+					.map((item) => `<option value="${escapeHtml(item.id)}"${item.id === current ? ' selected' : ''}>${escapeHtml(item.name)}</option>`)
+					.join('');
+			}
+
+			function modelOptions(provider, current) {
+				const list = withCurrent(modelsOf(provider), current, (id) => modelNameOf(provider, id));
+				return list
+					.map((item) => `<option value="${escapeHtml(item.id)}"${item.id === current ? ' selected' : ''}>${escapeHtml(item.name)}</option>`)
+					.join('');
+			}
+
+			function sideBlock(scene, role, side) {
+				const routeValue = scene.roles[role][side];
+				const isPrimary = scene.primary === side;
+				const label = scene.labels[side] || (side === 'a' ? '国内' : '国际');
+				return `
+					<div class="side">
+						<div class="side-head">
+							<b>${side === 'a' ? 'A 侧' : 'B 侧'} · ${escapeHtml(label)}</b>
+							<span class="pill${isPrimary ? '' : ' off'}">${isPrimary ? '当前在主槽' : '当前在备槽'}</span>
+						</div>
+						<select data-role="${role}" data-side="${side}" data-field="provider" aria-label="提供商">
+							${providerOptions(routeValue.provider)}
+						</select>
+						<select data-role="${role}" data-side="${side}" data-field="model" aria-label="模型">
+							${modelOptions(routeValue.provider, routeValue.model)}
+						</select>
+					</div>`;
+			}
+
+			function renderScene() {
+				const scene = activeScenario();
+				if (!scene) {
+					document.getElementById('scene').innerHTML = '';
+					return;
+				}
+				document.getElementById('scene').innerHTML = `
+					<div class="card">
+						<p class="card-title">这个场景</p>
+						<div class="row">
+							<label class="field">
+								<span>切换按钮名称（A 侧）</span>
+								<input type="text" maxlength="16" value="${escapeHtml(scene.labels.a ?? '')}"
+									placeholder="国内" data-label="a" aria-label="A 侧按钮名" />
+							</label>
+							<label class="field">
+								<span>切换按钮名称（B 侧）</span>
+								<input type="text" maxlength="16" value="${escapeHtml(scene.labels.b ?? '')}"
+									placeholder="国际" data-label="b" aria-label="B 侧按钮名" />
+							</label>
+							<label class="toggle" title="勾选后这个场景的切换按钮会出现在侧边栏">
+								<input type="checkbox" data-enabled-toggle="1" ${scene.enabled ? 'checked' : ''} />
+								使用
+								<span class="hint">勾选后才出现按钮</span>
+							</label>
+							<span style="flex: 1 1 auto"></span>
+							<button class="btn danger" id="deleteScene" ${state.scenarios.length <= 1 ? 'disabled' : ''}>
+								删除此场景
+							</button>
+						</div>
+					</div>
+
+					<div class="card">
+						<p class="card-title">三个角色的主 / 备模型</p>
+						<div class="roles">
+							${ROLE_KEYS.map(
+								(role) => `
+								<div class="role">
+									<span class="role-name">${ROLE_LABEL[role]}</span>
+									${sideBlock(scene, role, 'a')}
+									${sideBlock(scene, role, 'b')}
+								</div>`,
+							).join('')}
+						</div>
+					</div>`;
+			}
+
+			function bindScene() {
+				const scene = activeScenario();
+				if (!scene) return;
+				const root = document.getElementById('scene');
+
+				root.querySelectorAll('[data-label]').forEach((input) => {
+					input.addEventListener('input', () => {
+						scene.labels[input.dataset.label] = input.value;
+						renderScene();
+						renderMock();
+						renderJson();
+					});
+				});
+				const enabledToggle = root.querySelector('[data-enabled-toggle]');
+				if (enabledToggle) {
+					enabledToggle.addEventListener('change', () => {
+						scene.enabled = enabledToggle.checked;
+						if (scene.enabled) state.activeScenario = scene.id; // 勾选即接管生效，Q1 的推荐做法
+						render();
+					});
+				}
+				const delBtn = root.querySelector('#deleteScene');
+				if (delBtn) {
+					delBtn.addEventListener('click', () => {
+						if (state.scenarios.length <= 1) return;
+						const index = state.scenarios.findIndex((s) => s.id === scene.id);
+						state.scenarios.splice(index, 1);
+						const enabled = state.scenarios.filter((s) => s.enabled);
+						state.activeScenario = (enabled[0] ?? state.scenarios[0]).id;
+						toast('已删除该场景');
+						render();
+					});
+				}
+				root.querySelectorAll('select[data-role]').forEach((select) => {
+					select.addEventListener('change', () => {
+						const { role, side, field } = select.dataset;
+						const target = scene.roles[role][side];
+						if (field === 'provider') {
+							target.provider = select.value;
+							const models = modelsOf(select.value);
+							// 换提供商后旧模型未必还在候选里，落到第一个候选
+							if (!models.some((m) => m.id === target.model)) target.model = models[0] ? models[0].id : '';
+						} else {
+							target.model = select.value;
+						}
+						renderScene();
+						renderMock();
+						renderJson();
+					});
+				});
+			}
+
+			// ---------------- 渲染：侧边栏预览 ----------------
+			function renderMock() {
+				const mock = document.getElementById('mockSide');
+				const enabled = state.scenarios.filter((s) => s.enabled);
+				if (enabled.length === 0) {
+					mock.innerHTML = `
+						<div class="mock-row">
+							<span class="mock-label">（没有场景被勾「使用」，侧边栏只剩设置按钮）</span>
+							<span class="mock-set">设置</span>
+						</div>`;
+					return;
+				}
+				mock.innerHTML =
+					enabled
+						.map((scene) => {
+							const isActive = scene.id === activeId();
+							const labelA = scene.labels.a || '国内';
+							const labelB = scene.labels.b || '国际';
+							const primaryIsA = scene.primary === 'a';
+							return `
+						<div class="mock-row${isActive ? ' active' : ''}">
+							<span class="mock-label" title="${escapeHtml(scene.name)}">${escapeHtml(scene.name.slice(0, 4))}</span>
+							<span class="mock-seg">
+								<button data-scene="${scene.id}" data-side="a" class="${primaryIsA ? 'on' : ''}">${escapeHtml(labelA)}</button>
+								<button data-scene="${scene.id}" data-side="b" class="${primaryIsA ? '' : 'on'}">${escapeHtml(labelB)}</button>
+							</span>
+							<span class="mock-set" title="打开设置">设置</span>
+						</div>`;
+						})
+						.join('') +
+					`<div class="mock-row dim"><span class="mock-label">（每行 = 一个已启用的场景）</span></div>`;
+
+				mock.querySelectorAll('button[data-scene]').forEach((btn) => {
+					btn.addEventListener('click', () => {
+						const scene = findScenario(btn.dataset.scene);
+						if (!scene) return;
+						if (scene.primary === btn.dataset.side) {
+							state.activeScenario = scene.id; // 点已经亮着的一侧＝只接管生效，不换边
+						} else {
+							scene.primary = btn.dataset.side; // 换边 = 主备对调
+							state.activeScenario = scene.id;
+						}
+						toast(`「${scene.name}」已切到 ${scene.primary === 'a' ? scene.labels.a || 'A 侧' : scene.labels.b || 'B 侧'}`);
+						render();
+					});
+				});
+			}
+
+			// ---------------- 渲染：JSON 预览（保存后会写进文件的样子） ----------------
+			function effectiveRoles(scene) {
+				const other = scene.primary === 'a' ? 'b' : 'a';
+				const roles = {};
+				for (const role of ROLE_KEYS) {
+					roles[role] = {
+						default: { ...scene.roles[role][scene.primary] },
+						fallback: { ...scene.roles[role][other] },
+					};
+				}
+				return roles;
+			}
+
+			function renderJson() {
+				const scene = activeScenario();
+				const payload = {
+					schemaVersion: 2,
+					activeScenario: scene ? scene.id : null,
+					scenarios: state.scenarios.map((s) => ({
+						id: s.id,
+						name: s.name,
+						enabled: s.enabled,
+						labels: { ...s.labels },
+						primary: s.primary,
+						roles: s.roles,
+					})),
+					roles: scene ? effectiveRoles(scene) : undefined,
+				};
+				document.getElementById('jsonPreview').textContent = JSON.stringify(payload, null, 2);
+			}
+
+			function render() {
+				renderTabs();
+				renderScene();
+				bindScene();
+				renderMock();
+				renderJson();
+			}
+
+			document.getElementById('save').addEventListener('click', () => {
+				toast('原型不发请求 —— 保存后就是上面这段 JSON');
+			});
+			document.getElementById('cancel').addEventListener('click', () => {
+				toast('原型不发请求 —— 取消只是关掉弹窗');
+			});
+			document.querySelector('.close-btn').addEventListener('click', () => {
+				toast('原型不发请求 —— 关闭只是关掉弹窗');
+			});
+
+			render();
+		</script>
+	</body>
+</html>

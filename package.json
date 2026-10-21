@@ -1,0 +1,47 @@
+{
+  "name": "orchestrator2-region-switch",
+  "version": "2.4.5",
+  "private": true,
+  "description": "DSH 插件：侧边栏一行「场景切换」滑块 + 「设置」按钮，点滑块互换该场景的主/备，点设置（或这一行任意空白处）直接打开设置弹窗。场景数不限，每个场景一套「研究员/审核员/开发员」的 A/B 两侧模型，画面上的 TAB 用两侧名字拼接；「应用」立即生效，「失效自动切换」按顺序轮转。只写「自动开发调度器2.0」(dsh-orchestrator2) 的 model-routes.json，下次派工生效；提供商与模型从 DSH 当前可用目录点选。",
+  "license": "MIT",
+  "type": "module",
+  "main": "./index.js",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "host"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "the assistant framework",
+    "region",
+    "model-routing",
+    "orchestrator2"
+  ],
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  }
+}

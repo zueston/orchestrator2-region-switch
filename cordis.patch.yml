@@ -1,0 +1,13 @@
+# orchestrator2-region-switch bundle patch: inserts the plugin row into the web
+# profile roster. Applied as a profile bundle layer (the `dsh.bundle.patch`
+# manifest field) over dsh-base.
+#
+# Why a bundle and not a hand-written row in the profile's own cordis.patch.yml:
+# the profile inventory (plugin list, dependency reconciliation) is built from
+# `dependencies` + `dsh.profile.bundles` in the profile manifest. A row that
+# exists only in the user patch layer loads its node half but the package stays
+# unknown to the profile inventory, so the browser half never activates and the
+# plugin is missing from 设置 → 插件.
+- insert:
+    - id: orchestrator2-region-switch
+      name: 'orchestrator2-region-switch'

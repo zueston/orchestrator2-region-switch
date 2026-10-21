@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8" />
+		<title>场景 TAB 样式原型 v2</title>
+		<style>
+			:root {
+				--brand: #4d6bfe;
+				--green: #16a34a;
+				--green-soft: rgba(22, 163, 74, 0.14);
+				--green-line: #15803d;
+				--red: #dc2626;
+				--ink: #1f2430;
+				--muted: #6b7280;
+				--line: rgba(128, 128, 128, 0.28);
+				--card: #fff;
+				--bg: #f4f5f7;
+			}
+			body {
+				margin: 0;
+				padding: 28px 32px 60px;
+				background: var(--bg);
+				color: var(--ink);
+				font: 14px/1.55 "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+			}
+			h1 {
+				font-size: 17px;
+				margin: 0 0 4px;
+			}
+			.hint {
+				color: var(--muted);
+				font-size: 12.5px;
+				margin: 0 0 18px;
+			}
+			.card {
+				background: var(--card);
+				border: 1px solid var(--line);
+				border-radius: 12px;
+				padding: 16px 18px 18px;
+				margin: 0 0 18px;
+				max-width: 880px;
+			}
+			.cardTitle {
+				font-size: 14px;
+				font-weight: 700;
+				margin: 0 0 2px;
+			}
+			.cardNote {
+				color: var(--muted);
+				font-size: 12.5px;
+				margin: 0 0 12px;
+			}
+			.tabRow {
+				display: flex;
+				align-items: stretch;
+				gap: 4px;
+				flex-wrap: wrap;
+				border-bottom: 1px solid var(--line);
+				padding-bottom: 0;
+			}
+			.tab {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+				padding: 8px 10px 7px;
+				border: none;
+				border-bottom: 2px solid transparent;
+				background: transparent;
+				color: var(--muted);
+				font: inherit;
+				font-size: 13px;
+				cursor: pointer;
+				white-space: nowrap;
+			}
+			.tab:hover {
+				color: var(--ink);
+			}
+			.tab.selected {
+				border-bottom-color: var(--brand);
+				color: var(--brand);
+				font-weight: 700;
+			}
+			.useBtn {
+				font: inherit;
+				font-size: 11.5px;
+				font-weight: 600;
+				line-height: 1;
+				padding: 4px 9px;
+				border-radius: 999px;
+				border: 1px solid var(--green-line);
+				background: var(--green);
+				color: #fff;
+				cursor: pointer;
+			}
+			.useBtn:hover {
+				filter: brightness(1.06);
+			}
+			.useBtn.on {
+				border-color: rgba(22, 163, 74, 0.45);
+				background: var(--green-soft);
+				color: var(--green-line);
+				cursor: default;
+			}
+			.delBtn {
+				margin-left: auto;
+				font: inherit;
+				font-size: 12px;
+				font-weight: 600;
+				line-height: 1;
+				padding: 6px 12px;
+				border-radius: 999px;
+				border: 1px solid #b91c1c;
+				background: var(--red);
+				color: #fff;
+				cursor: pointer;
+				align-self: center;
+			}
+			.delBtn:disabled {
+				opacity: 0.45;
+				cursor: default;
+			}
+			.status {
+				margin: 12px 0 0;
+				font-size: 12.5px;
+				color: var(--muted);
+			}
+			.status b {
+				color: var(--ink);
+			}
+
+			/* ---- 变体 A：使用中 = 名字前绿点 + 底部条变绿 ---- */
+			.vA .tab.inUse {
+				border-bottom-color: var(--green);
+			}
+			.vA .tab.inUse .name::before {
+				content: "";
+				display: inline-block;
+				width: 7px;
+				height: 7px;
+				border-radius: 50%;
+				background: var(--green);
+				margin-right: 6px;
+				vertical-align: 1px;
+			}
+
+			/* ---- 变体 B：使用中 = 整块浅绿圆角底 + 左侧绿竖条 ---- */
+			.vB .tab.inUse {
+				background: var(--green-soft);
+				border-radius: 8px 8px 0 0;
+				box-shadow: inset 3px 0 0 var(--green);
+				padding-left: 13px;
+			}
+
+			/* ---- 变体 C：使用中 = 名字后跟实心绿徽章「使用中」（按钮被徽章取代） ---- */
+			.vC .tab.inUse .name::after {
+				content: "使用中";
+				display: inline-block;
+				margin-left: 6px;
+				padding: 2px 7px;
+				border-radius: 999px;
+				background: var(--green);
+				color: #fff;
+				font-size: 10.5px;
+				font-weight: 700;
+				vertical-align: 1px;
+			}
+
+			/* ---- 变体 D：使用中 = 左侧绿勾图标 + 名字加粗（无底色，最克制） ---- */
+			.vD .tab.inUse .name::before {
+				content: "✓";
+				color: var(--green);
+				font-weight: 900;
+				margin-right: 5px;
+			}
+			.vD .tab.inUse .name {
+				font-weight: 700;
+				color: var(--green-line);
+			}
+		</style>
+	</head>
+	<body>
+		<h1>场景 TAB：每个 TAB 带「使用」按钮，选中 = 底栏，使用中 = 另一种特效</h1>
+		<p class="hint">
+			下面 4 个变体都能点：点 TAB = 选中（底栏）；点 TAB 里的绿色「使用」= 让这个场景生效（特效）。最右的红色「删除这个场景」删的是当前选中的那个。
+		</p>
+
+		<section class="card vA" data-variant="A">
+			<p class="cardTitle">变体 A：使用中 = 名字前一个绿点 + 底栏变绿</p>
+			<p class="cardNote">最安静的一种；选中是蓝底栏、使用中是绿底栏 + 绿点，两者一眼可分。</p>
+			<div class="tabRow"></div>
+			<p class="status"></p>
+		</section>
+
+		<section class="card vB" data-variant="B">
+			<p class="cardTitle">变体 B：使用中 = 整块浅绿圆角底 + 左侧绿竖条</p>
+			<p class="cardNote">区块感最强，扫一眼就知道哪个在生效；底色只在名字后面一小块，不影响排序。</p>
+			<div class="tabRow"></div>
+			<p class="status"></p>
+		</section>
+
+		<section class="card vC" data-variant="C">
+			<p class="cardTitle">变体 C：使用中 = 名字后跟实心绿徽章「使用中」</p>
+			<p class="cardNote">文字说得最明白；缺点是徽章占宽度，TAB 会变长。</p>
+			<div class="tabRow"></div>
+			<p class="status"></p>
+		</section>
+
+		<section class="card vD" data-variant="D">
+			<p class="cardTitle">变体 D：使用中 = 名字前一个绿勾 + 名字变绿加粗</p>
+			<p class="cardNote">与「选中」的蓝色底栏并排时对比最明显，且不占额外宽度。</p>
+			<div class="tabRow"></div>
+			<p class="status"></p>
+		</section>
+
+		<script>
+			const LABELS = ["国内/国际", "国内收费/国内收费", "省钱/强力"];
+
+			function mount(card) {
+				const row = card.querySelector(".tabRow");
+				const status = card.querySelector(".status");
+				const variant = card.dataset.variant;
+				const state = { selected: 0, inUse: 0 };
+				let tabs = [];
+
+				function render() {
+					row.textContent = "";
+					tabs = LABELS.map((label, index) => {
+						const tab = document.createElement("div");
+						tab.className = "tab";
+						tab.tabIndex = 0;
+						tab.setAttribute("role", "tab");
+						tab.setAttribute("aria-selected", String(index === state.selected));
+						if (index === state.selected) tab.classList.add("selected");
+						if (index === state.inUse) tab.classList.add("inUse");
+
+						const name = document.createElement("span");
+						name.className = "name";
+						// B 变体用 ::before 画竖条，需要额外左边距；由 CSS 负责
+						name.textContent = label;
+						tab.appendChild(name);
+
+						const use = document.createElement("button");
+						use.type = "button";
+						use.className = "useBtn" + (index === state.inUse ? " on" : "");
+						use.textContent = index === state.inUse ? "使用中" : "使用";
+						use.disabled = index === state.inUse;
+						use.title = index === state.inUse ? "这个场景正在生效" : "让「" + label + "」生效";
+						use.addEventListener("click", (event) => {
+							event.stopPropagation();
+							state.inUse = index;
+							state.selected = index;
+							render();
+						});
+						// 变体 C 用徽章取代按钮
+						if (!(variant === "C" && index === state.inUse)) tab.appendChild(use);
+
+						tab.addEventListener("click", () => {
+							state.selected = index;
+							render();
+						});
+						tab.addEventListener("keydown", (event) => {
+							if (event.key === "Enter" || event.key === " ") {
+								event.preventDefault();
+								state.selected = index;
+								render();
+							}
+						});
+						row.appendChild(tab);
+						return tab;
+					});
+
+					const del = document.createElement("button");
+					del.type = "button";
+					del.className = "delBtn";
+					del.textContent = "删除这个场景";
+					del.disabled = LABELS.length <= 1;
+					del.title = "删除当前选中的场景";
+					del.addEventListener("click", () => {
+						status.textContent = "";
+						const note = document.createElement("span");
+						note.innerHTML =
+							"（原型不真删）会删掉：<b>" + LABELS[state.selected] + "</b>";
+						status.appendChild(note);
+					});
+					row.appendChild(del);
+
+					status.innerHTML =
+						"当前选中：<b>" +
+						LABELS[state.selected] +
+						"</b>　正在生效：<b>" +
+						LABELS[state.inUse] +
+						"</b>　（选中管「改哪个」，使用中管「跑哪个」）";
+				}
+
+				render();
+			}
+
+			for (const card of document.querySelectorAll(".card")) mount(card);
+		</script>
+	</body>
+</html>

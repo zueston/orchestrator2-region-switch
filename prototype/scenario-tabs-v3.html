@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8" />
+		<title>场景 TAB 原型 v3：选中 = 底栏，使用中 = 红圈</title>
+		<style>
+			:root {
+				--brand: #4d6bfe;
+				--green: #16a34a;
+				--green-line: #15803d;
+				--red: #dc2626;
+				--red-ring: #e11d48;
+				--ink: #1f2430;
+				--muted: #6b7280;
+				--line: rgba(128, 128, 128, 0.28);
+				--card: #fff;
+				--bg: #f4f5f7;
+			}
+			body {
+				margin: 0;
+				padding: 24px 32px 60px;
+				background: var(--bg);
+				color: var(--ink);
+				font: 14px/1.55 "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+			}
+			h1 {
+				font-size: 17px;
+				margin: 0 0 6px;
+			}
+			.hint {
+				color: var(--muted);
+				font-size: 12.5px;
+				margin: 0 0 16px;
+			}
+			.switch {
+				display: inline-flex;
+				gap: 6px;
+				margin: 0 0 16px;
+			}
+			.switch button {
+				font: inherit;
+				font-size: 12.5px;
+				padding: 6px 12px;
+				border-radius: 999px;
+				border: 1px solid var(--line);
+				background: #fff;
+				color: var(--muted);
+				cursor: pointer;
+			}
+			.switch button.on {
+				border-color: var(--brand);
+				color: var(--brand);
+				font-weight: 700;
+			}
+			.card {
+				background: var(--card);
+				border: 1px solid var(--line);
+				border-radius: 12px;
+				padding: 16px 18px 18px;
+				margin: 0 0 18px;
+				max-width: 900px;
+			}
+			.cardTitle {
+				font-size: 14px;
+				font-weight: 700;
+				margin: 0 0 12px;
+			}
+
+			/* ---------- TAB 条 ---------- */
+			.tabRow {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				flex-wrap: wrap;
+				border-bottom: 1px solid var(--line);
+				padding-bottom: 6px;
+			}
+			.tab {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+				padding: 6px 10px;
+				border: none;
+				border-bottom: 2px solid transparent;
+				border-radius: 8px;
+				background: transparent;
+				color: var(--muted);
+				font: inherit;
+				font-size: 13px;
+				cursor: pointer;
+				white-space: nowrap;
+			}
+			.tab:hover {
+				color: var(--ink);
+			}
+			/* 选中 = 底栏特效（蓝） */
+			.tab.selected {
+				border-bottom-color: var(--brand);
+				color: var(--brand);
+				font-weight: 700;
+			}
+			/* 使用中 = 红圈（形状可切换） */
+			.tab.inUse.ringRect {
+				box-shadow: 0 0 0 2px var(--red-ring);
+			}
+			.tab.inUse.ringPill {
+				border-radius: 999px;
+				box-shadow: 0 0 0 2px var(--red-ring);
+			}
+			.tab.inUse.ringDashed {
+				outline: 2px dashed var(--red-ring);
+				outline-offset: 2px;
+			}
+
+			.useBtn {
+				font: inherit;
+				font-size: 11.5px;
+				font-weight: 600;
+				line-height: 1;
+				padding: 4px 9px;
+				border-radius: 999px;
+				border: 1px solid var(--green-line);
+				background: var(--green);
+				color: #fff;
+				cursor: pointer;
+			}
+			.useBtn:hover {
+				filter: brightness(1.06);
+			}
+			.useBtn.on {
+				border-color: rgba(22, 163, 74, 0.45);
+				background: rgba(22, 163, 74, 0.14);
+				color: var(--green-line);
+				cursor: default;
+			}
+			.addBtn {
+				font: inherit;
+				font-size: 12.5px;
+				padding: 5px 11px;
+				border-radius: 999px;
+				border: 1px dashed rgba(128, 128, 128, 0.55);
+				background: transparent;
+				color: var(--muted);
+				cursor: pointer;
+			}
+			.delBtn {
+				margin-left: auto;
+				font: inherit;
+				font-size: 12px;
+				font-weight: 600;
+				line-height: 1;
+				padding: 6px 12px;
+				border-radius: 999px;
+				border: 1px solid #b91c1c;
+				background: var(--red);
+				color: #fff;
+				cursor: pointer;
+			}
+			.delBtn:disabled {
+				opacity: 0.45;
+				cursor: default;
+			}
+
+			/* ---------- 三角色模型表 ---------- */
+			.headRow,
+			.roleRow {
+				display: grid;
+				grid-template-columns: 76px 1fr 1fr;
+				gap: 10px;
+				align-items: center;
+			}
+			.headRow {
+				margin: 0 0 6px;
+				font-size: 12px;
+				color: var(--muted);
+			}
+			.roleRow {
+				padding: 8px 0;
+				border-top: 1px solid rgba(128, 128, 128, 0.14);
+			}
+			.roleName {
+				font-weight: 700;
+				font-size: 12.5px;
+			}
+			.slotCol {
+				display: flex;
+				flex-direction: column;
+				gap: 6px;
+			}
+			.field {
+				font: inherit;
+				font-size: 12.5px;
+				padding: 6px 8px;
+				border-radius: 8px;
+				border: 1px solid var(--line);
+				background: #fff;
+				color: var(--ink);
+			}
+			/* 当前场景「主模型」那一列的表头：红圈 */
+			.headChip {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				padding: 2px 9px;
+				border-radius: 999px;
+				font-weight: 700;
+				color: var(--ink);
+			}
+			.headChip.primary {
+				box-shadow: 0 0 0 2px var(--red-ring);
+				color: var(--red-ring);
+			}
+			.headChip .mark {
+				font-size: 11px;
+				color: var(--red-ring);
+			}
+			.status {
+				margin: 12px 0 0;
+				font-size: 12.5px;
+				color: var(--muted);
+			}
+			.status b {
+				color: var(--ink);
+			}
+		</style>
+	</head>
+	<body>
+		<h1>场景 TAB v3：选中 = 底栏特效，使用中 = 红圈</h1>
+		<p class="hint">
+			TAB 上不再写「使用中」三个字；正在生效的那个场景（以及它下面「主模型」那一列）用红圈标出来。点 TAB 只切换「在改哪个」，点绿色「应用」才让它生效。
+		</p>
+
+		<div class="switch" id="switch">
+			<button type="button" data-ring="ringRect" class="on">红圈：圆角矩形</button>
+			<button type="button" data-ring="ringPill">红圈：胶囊形</button>
+			<button type="button" data-ring="ringDashed">红圈：虚线</button>
+		</div>
+
+		<section class="card">
+			<p class="cardTitle">场景 TAB 条</p>
+			<div class="tabRow" id="tabRow"></div>
+			<p class="status" id="status"></p>
+
+			<p class="cardTitle" style="margin: 18px 0 10px">当前场景的三角色模型（「主模型」那一列带红圈）</p>
+			<div class="headRow">
+				<span>角色</span>
+				<span id="headA"></span>
+				<span id="headB"></span>
+			</div>
+			<div id="rows"></div>
+		</section>
+
+		<script>
+			const SCENES = [
+				{ id: "s1", a: "国内", b: "国际" },
+				{ id: "s2", a: "国内收费", b: "国内收费" },
+				{ id: "s3", a: "省钱", b: "强力" },
+			];
+			const ROLES = [
+				{ name: "研究员", a: "cn:deepseek-v4.1-flash", b: "global:deepseek-v4.1-flash" },
+				{ name: "审核员", a: "cn:step-5-preview", b: "global:step-5-preview" },
+				{ name: "开发者", a: "cn:deepseek-v4.1-flash", b: "global:deepseek-v4.1-flash" },
+			];
+			const state = { selected: 0, inUse: 0, primary: "a", ring: "ringRect" };
+
+			const tabRow = document.getElementById("tabRow");
+			const status = document.getElementById("status");
+			const headA = document.getElementById("headA");
+			const headB = document.getElementById("headB");
+			const rows = document.getElementById("rows");
+
+			function renderTabs() {
+				tabRow.textContent = "";
+				SCENES.forEach((scene, index) => {
+					const tab = document.createElement("div");
+					tab.className = "tab";
+					tab.tabIndex = 0;
+					tab.setAttribute("role", "tab");
+					if (index === state.selected) tab.classList.add("selected");
+					if (index === state.inUse) tab.classList.add("inUse", state.ring);
+					tab.title = scene.a + "/" + scene.b;
+
+					const name = document.createElement("span");
+					name.textContent = scene.a + "/" + scene.b;
+					tab.appendChild(name);
+
+					const use = document.createElement("button");
+					use.type = "button";
+					use.className = "useBtn" + (index === state.inUse ? " on" : "");
+					use.textContent = "应用";
+					use.disabled = index === state.inUse;
+					use.title = index === state.inUse ? "这个场景正在生效" : "让这个场景生效";
+					use.addEventListener("click", (event) => {
+						event.stopPropagation();
+						state.inUse = index;
+						state.selected = index;
+						state.primary = "a";
+						render();
+					});
+					tab.appendChild(use);
+
+					tab.addEventListener("click", () => {
+						state.selected = index;
+						render();
+					});
+					tab.addEventListener("keydown", (event) => {
+						if (event.key === "Enter" || event.key === " ") {
+							event.preventDefault();
+							state.selected = index;
+							render();
+						}
+					});
+					tabRow.appendChild(tab);
+				});
+
+				const add = document.createElement("button");
+				add.type = "button";
+				add.className = "addBtn";
+				add.textContent = "＋ 增加场景";
+				add.addEventListener("click", () => {
+					status.textContent = "（原型不真加）";
+				});
+				tabRow.appendChild(add);
+
+				const del = document.createElement("button");
+				del.type = "button";
+				del.className = "delBtn";
+				del.textContent = "删除";
+				del.disabled = SCENES.length <= 1;
+				del.title = "删除当前选中的场景";
+				del.addEventListener("click", () => {
+					status.textContent = "（原型不真删）会删掉：" + SCENES[state.selected].a + "/" + SCENES[state.selected].b;
+				});
+				tabRow.appendChild(del);
+			}
+
+			function renderTable() {
+				const scene = SCENES[state.selected];
+				headA.textContent = "";
+				headB.textContent = "";
+				for (const [cell, key, label] of [
+					[headA, "a", scene.a],
+					[headB, "b", scene.b],
+				]) {
+					const chip = document.createElement("span");
+					chip.className = "headChip" + (state.primary === key ? " primary" : "");
+					chip.textContent = label;
+					if (state.primary === key) {
+						const mark = document.createElement("span");
+						mark.className = "mark";
+						mark.textContent = "主";
+						chip.appendChild(mark);
+					}
+					cell.appendChild(chip);
+				}
+
+				rows.textContent = "";
+				for (const role of ROLES) {
+					const row = document.createElement("div");
+					row.className = "roleRow";
+					const name = document.createElement("span");
+					name.className = "roleName";
+					name.textContent = role.name;
+					row.appendChild(name);
+					for (const key of ["a", "b"]) {
+						const col = document.createElement("div");
+						col.className = "slotCol";
+						for (const value of ["deepseek-official", role[key]]) {
+							const field = document.createElement("div");
+							field.className = "field";
+							field.textContent = value;
+							col.appendChild(field);
+						}
+						row.appendChild(col);
+					}
+					rows.appendChild(row);
+				}
+
+				status.innerHTML =
+					"选中（在改）＝<b>" +
+					scene.a +
+					"/" +
+					scene.b +
+					"</b>　生效（在跑）＝<b>" +
+					SCENES[state.inUse].a +
+					"/" +
+					SCENES[state.inUse].b +
+					"</b>　主模型＝<b>" +
+					(state.primary === "a" ? scene.a : scene.b) +
+					"</b>　（原型：点 TAB 只切「选中」，点「应用」才生效）";
+			}
+
+			function render() {
+				renderTabs();
+				renderTable();
+			}
+
+			for (const button of document.querySelectorAll("#switch button")) {
+				button.addEventListener("click", () => {
+					state.ring = button.dataset.ring;
+					for (const other of document.querySelectorAll("#switch button")) {
+						other.classList.toggle("on", other === button);
+					}
+					render();
+				});
+			}
+
+			render();
+		</script>
+	</body>
+</html>
